@@ -1,10 +1,11 @@
-const express = require('express');
-const http = require('http');
 const WebSocket = require('ws');
 
 const port = 5000;
-const server = http.createServer(express);
-const wss = new WebSocket.Server({ server })
+
+const wss = new WebSocket.Server({
+    port: port
+});
+
 wss.on('connection', function connection(ws) {
     ws.on('message', function incoming(d) {
         const data = d.toString('utf-8')
@@ -16,6 +17,4 @@ wss.on('connection', function connection(ws) {
     })
 })
 
-server.listen(port, function () {
-    console.log(`Server is listening on ${port}!`)
-})
+console.log((new Date()) + " Server is listening on port " + port);
