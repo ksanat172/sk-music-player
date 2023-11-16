@@ -7,13 +7,18 @@ const wss = new WebSocket.Server({
 });
 
 wss.on('connection', function connection(ws) {
-    ws.on('message', function incoming(d) {
-        const data = d.toString('utf-8')
+    ws.on('message', function incoming(data) {
+        const stringifiedData = data.toString('utf-8')
         wss.clients.forEach(function each(client) {
             if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(data);
+                client.send(stringifiedData);
             }
         })
+    })
+    wss.clients.forEach(function each(client) {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+            client.send('Joined');
+        }
     })
 })
 
