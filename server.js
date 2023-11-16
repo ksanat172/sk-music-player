@@ -16,9 +16,9 @@ wss.on('connection', function connection(ws) {
         })
     })
 
-    if (client.readyState === WebSocket.OPEN) {
-        ws.send('Joined');
-    }
+
+    ws.send('Joined');
+
 })
 
 console.log((new Date()) + " Server is listening on port " + port);
