@@ -17,14 +17,13 @@ wss.on('connection', function connection(ws) {
         })
     })
 
+    ws.onclose(() => {
+        concatStr = "";
+    })
+
 
     ws.send(concatStr);
 
-})
-
-
-wss.on('close', () => {
-    concatStr = ""
 })
 
 console.log((new Date()) + " Server is listening on port " + port);
