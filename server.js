@@ -22,4 +22,9 @@ wss.on('connection', function connection(ws) {
 
 })
 
+
+wss.on('close', () => {
+    concatStr = ""
+})
+
 console.log((new Date()) + " Server is listening on port " + port);
