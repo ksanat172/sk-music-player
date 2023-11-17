@@ -1,29 +1,21 @@
 const WebSocket = require('ws');
 
 const port = 5000;
-let concatStr = "";
+let globalObject = "";
 const wss = new WebSocket.Server({
     port: port
 });
 
 wss.on('connection', function connection(ws) {
-    ws.on('message', function incoming(data) {
-        concatStr += data;
-        const stringifiedData = data.toString('utf-8')
+    ws.on('message', function incoming(obj) {
+        const stringifiedObj = JSON.parse(obj.toString('utf-8'));
         wss.clients.forEach(function each(client) {
             if (client !== ws && client.readyState === WebSocket.OPEN) {
-                client.send(stringifiedData);
+                client.send(JSON.stringify(stringifiedObj.data).toString());
             }
         })
     })
-
-    ws.onclose(() => {
-        concatStr = "";
-    })
-
-
-    ws.send(concatStr);
-
 })
+
 
 console.log((new Date()) + " Server is listening on port " + port);
