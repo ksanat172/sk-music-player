@@ -2,7 +2,7 @@ const port = 5123;
 let globalObject = "";
 const io = require('socket.io')(port, {
     cors: {
-        origin: ['http://localhost:3000', 'https://word-guess-sk.web.app/']
+        origin: ['http://localhost:3000', 'https://word-guess-sk.web.app']
     }
 })
 
