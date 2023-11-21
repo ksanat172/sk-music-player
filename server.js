@@ -8,41 +8,71 @@ const io = require('socket.io')(port, {
 io.on('connection', (socket) => {
 
     socket.on('sendMessage', (message, roomID) => {
-        console.log('here', { message, roomID })
         socket.to(roomID).emit('receiveMessage', message)
     })
 
-    socket.on('create-room', () => {
+    socket.on('create-room', (playerObj, terminalMsg) => {
         const roomID = generateRoomID();
         socket.join(roomID);
         socket.emit('getRoomID', roomID);
-        io.sockets.adapter.rooms[roomID] = {
-            playersData: []
-        }
+        const playersData = [{ ...playerObj, id: socket.id }];
+        io.to(roomID).emit('sendPlayersData', playersData);
+        const terminalMsgArray = [terminalMsg];
+        io.to(roomID).emit('get-terminal-message', terminalMsgArray);
+        updateRoomData(roomID, { terminalMsgArray, playersData });
     })
 
-    socket.on('join-room', (room) => {
-        console.log('Joined', room)
-        socket.join(room);
+    socket.on('update-players', (playersData, roomID) => {
+        io.to(roomID).emit('sendPlayersData', playersData);
+        updateRoomData(roomID, { playersData });
+    })
+
+    socket.on('add-terminal-message', (terminalMsg, roomID) => {
+        const terminalMsgArray = getRoomData(roomID)?.terminalMsgArray || []
+        terminalMsgArray.push(terminalMsg);
+        updateRoomData(roomID, { terminalMsgArray });
+        io.to(roomID).emit('get-terminal-message', terminalMsgArray);
     })
 
     socket.on('add-player', (playerObj, roomID) => {
+        socket.join(roomID);
         const playersData = getRoomData(roomID)?.playersData || [];
-        if (!playersData.find((player) => player.name.toLowerCase() === playerObj.name.toLowerCase())) {
-            playersData.push(playerObj)
-            if (roomID)
-                getRoomData(roomID).playersData = playersData
+        const playerIndex = playersData.findIndex((player) => {
+            return player.name === playerObj.name
+        })
+        if (playerIndex !== -1) {
+            playersData[playerIndex] = { ...playersData[playerIndex], connectedStatus: true, id: socket.id }
+        } else {
+            playersData.push({ ...playerObj, id: socket.id })
         }
-        io.emit('receivePlayersData', playersData);
-        io.sockets.adapter.rooms[roomID] = {
-            playersData
-        }
-        console.log(playersData)
+
+        if (roomID)
+            getRoomData(roomID).playersData = playersData
+
+        io.to(roomID).emit('sendPlayersData', playersData);
+        updateRoomData(roomID, { playersData })
     })
 
     socket.on('disconnect', function () {
-
     })
+
+    socket.on("disconnecting", () => {
+        Array.from(socket.rooms).forEach((roomID) => {
+            const room = getRoomData(roomID);
+            if (room?.playersData) {
+                const playersData = room.playersData;
+                const disconnectedPlayerIndex = playersData.findIndex((player) => player.id === socket.id)
+                playersData[disconnectedPlayerIndex].connectedStatus = false;
+                io.to(roomID).emit('sendPlayersData', playersData);
+
+                const terminalMsgArray = getRoomData(roomID)?.terminalMsgArray || []
+                terminalMsgArray.push(`${playersData[disconnectedPlayerIndex].name} left the room`);
+                updateRoomData(roomID, { terminalMsgArray });
+                io.to(roomID).emit('get-terminal-message', terminalMsgArray);
+                updateRoomData(roomID, { playersData, terminalMsgArray })
+            }
+        })
+    });
 
     socket.on('start-timer', () => {
         console.log('started')
@@ -72,4 +102,11 @@ function generateRoomID() {
 
 function getRoomData(roomID) {
     return io.sockets.adapter.rooms[roomID]
+}
+
+function updateRoomData(roomID, data) {
+    io.sockets.adapter.rooms[roomID] = {
+        ...getRoomData(roomID),
+        ...data
+    }
 }
